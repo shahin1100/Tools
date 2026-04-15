@@ -2,11 +2,12 @@ import asyncio
 import pyotp
 import requests
 import re
+import os
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ====== CONFIG ======
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+# ====== TOKEN (Railway ENV) ======
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ====== MENU ======
 menu = ReplyKeyboardMarkup(
@@ -31,7 +32,7 @@ async def generate_2fa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     message = await update.message.reply_text("⏳ Generating 2FA...")
 
-    for _ in range(60):  # run ~1 minute
+    for _ in range(60):  # ~1 min
         code = totp.now()
         remaining = 30 - (int(asyncio.get_event_loop().time()) % 30)
 
@@ -85,10 +86,18 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Menu use koro")
 
 # ====== RUN ======
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+def main():
+    if not BOT_TOKEN:
+        print("❌ BOT_TOKEN not found!")
+        return
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-print("✅ Bot Running...")
-app.run_polling()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+
+    print("✅ Bot Running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
